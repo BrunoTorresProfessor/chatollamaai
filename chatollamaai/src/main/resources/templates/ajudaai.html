@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AjudaAI</title>
+    <link th:href="@{https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css}" rel="stylesheet">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #f8f9fa;
+        }
+        .user-message {
+            text-align: right;
+            color: white;
+            background-color: #0d6efd;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 75%;
+            align-self: flex-end;
+        }
+        .bot-message {
+            text-align: left;
+            color: black;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 75%;
+            align-self: flex-start;
+        }
+        .chat-box {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background-color: white;
+            border-top: 1px solid #ccc;
+            padding: 10px;
+            display: flex;
+        }
+        .chat-box input {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        .loading {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0d6efd;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        .loading-text {
+            display: inline-block;
+            font-size: 16px;
+            color: #0d6efd;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Cabeçalho -->
+    <nav class="navbar navbar-dark bg-dark p-3">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">AjudaAI</a>
+        </div>
+    </nav>
+
+    <!-- Área de chat -->
+    <div class="chat-container d-flex flex-column" id="chat">
+        <div class="bot-message">Olá! Como posso te ajudar hoje?</div>
+    </div>
+
+    <!-- Campo de entrada fixo na parte inferior -->
+    <div class="chat-box">
+        <input type="text" id="userInput" class="form-control" placeholder="Digite sua mensagem..." onkeydown="checkEnter(event)">
+        <button class="btn btn-primary" onclick="sendMessage()">Enviar</button>
+    </div>
+
+    <script>
+        function sendMessage() {
+            let input = document.getElementById("userInput");
+            let message = input.value.trim();
+            if (message === "") return;
+
+            let chat = document.getElementById("chat");
+
+            // Adiciona a mensagem do usuário
+            let userMessage = document.createElement("div");
+            userMessage.className = "user-message mt-2";
+            userMessage.innerText = message;
+            chat.appendChild(userMessage);
+
+            // Exibe o ícone de carregamento com o texto
+            let loadingMessage = document.createElement("div");
+            loadingMessage.className = "bot-message mt-2";
+            let loadingIcon = document.createElement("div");
+            loadingIcon.className = "loading";
+            let loadingText = document.createElement("span");
+            loadingText.className = "loading-text";
+            loadingText.innerText = "Buscando conteúdo...";
+            loadingMessage.appendChild(loadingIcon);
+            loadingMessage.appendChild(loadingText);
+            chat.appendChild(loadingMessage);
+            chat.scrollTop = chat.scrollHeight;
+
+            // Chama a API para obter a resposta do bot
+            fetch(`/ai/basic/basic/generate?message=${encodeURIComponent(message)}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Remove o ícone de carregamento
+                    chat.removeChild(loadingMessage);
+
+                    // Adiciona a resposta do bot
+                    let botMessage = document.createElement("div");
+                    botMessage.className = "bot-message mt-2";
+                    botMessage.innerText = data.ollama; // A resposta vem de 'ollama'
+                    chat.appendChild(botMessage);
+                    chat.scrollTop = chat.scrollHeight;
+                })
+                .catch(error => {
+                    console.error("Erro na comunicação com o servidor:", error);
+                    // Remove o ícone de carregamento
+                    chat.removeChild(loadingMessage);
+                    let errorMessage = document.createElement("div");
+                    errorMessage.className = "bot-message mt-2";
+                    errorMessage.innerText = "Desculpe, ocorreu um erro. Tente novamente.";
+                    chat.appendChild(errorMessage);
+                    chat.scrollTop = chat.scrollHeight;
+                });
+
+            input.value = ""; // Limpa o campo de entrada
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        // Função que verifica se a tecla Enter foi pressionada
+        function checkEnter(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+    </script>
+
+</body>
+</html>
